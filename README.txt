@@ -1,0 +1,1 @@
+Program that generates passwords and saves the user/email and password to .json file
