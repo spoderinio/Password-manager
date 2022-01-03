@@ -3,12 +3,21 @@ from tkinter import messagebox
 from random import choice, randint, shuffle
 import pyperclip
 import json
+from cryptography.fernet import Fernet
+
+
+def on_closing():
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        window.destroy()
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 
-#Password Generator Project
+# Password Generator Project
+
+
 def generate_password():
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y',
+               'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
     numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
 
@@ -24,6 +33,8 @@ def generate_password():
     pyperclip.copy(password)
 
 # ---------------------------- SAVE PASSWORD ------------------------------- #
+
+
 def save():
 
     website = website_entry.get()
@@ -37,21 +48,22 @@ def save():
     }
 
     if len(website) == 0 or len(password) == 0:
-        messagebox.showinfo(title="Oops", message="Please make sure you haven't left any fields empty.")
+        messagebox.showinfo(
+            title="Oops", message="Please make sure you haven't left any fields empty.")
     else:
         try:
             with open("data.json", "r") as data_file:
-                #Reading old data
+                # Reading old data
                 data = json.load(data_file)
         except FileNotFoundError:
             with open("data.json", "w") as data_file:
                 json.dump(new_data, data_file, indent=4)
         else:
-            #Updating old data with new data
+            # Updating old data with new data
             data.update(new_data)
 
             with open("data.json", "w") as data_file:
-                #Saving updated data
+                # Saving updated data
                 json.dump(data, data_file, indent=4)
         finally:
             website_entry.delete(0, END)
@@ -70,9 +82,59 @@ def find_password():
         if website in data:
             email = data[website]["email"]
             password = data[website]["password"]
-            messagebox.showinfo(title=website, message=f"Email: {email}\nPassword: {password}")
+            messagebox.showinfo(
+                title="Password copied to clypboard", message=f"Email: {email}\nPassword: {password}")
+            pyperclip.copy(password)
         else:
-            messagebox.showinfo(title="Error", message=f"No details for {website} exists.")
+            messagebox.showinfo(
+                title="Error", message=f"No details for {website} exists.")
+
+
+# ---------------------------- ENCRYPTION SETUP ------------------------------- #
+def gen_key():
+    # key generation
+    key = Fernet.generate_key()
+
+    # string the key in a file
+    with open('filekey.key', 'wb') as filekey:
+        filekey.write(key)
+
+
+def encrypt():
+    # opening the key
+    with open('filekey.key', 'rb') as filekey:
+        key = filekey.read()
+    fernet = Fernet(key)
+    with open('data.json', 'rb') as file:
+        # opening the original file to encrypt
+        original = file.read()
+        # encrypting the file
+        encrypted = fernet.encrypt(original)
+        # opening the file in write mode and
+        # writing the encrypted data
+        with open('data.json', 'wb') as encrypted_file:
+            encrypted_file.write(encrypted)
+
+
+def decrypt():
+    # opening the key
+    with open('filekey.key', 'rb') as filekey:
+        key = filekey.read()
+    # using the key
+    fernet = Fernet(key)
+
+    # opening the encrypted file
+    with open('data.json', 'rb') as enc_file:
+        encrypted = enc_file.read()
+
+    # decrypting the file
+    decrypted = fernet.decrypt(encrypted)
+
+    # opening the file in write mode and
+    # writing the decrypted data
+    with open('data.json', 'wb') as dec_file:
+        dec_file.write(decrypted)
+    print("Successfully decrypted")
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -86,30 +148,43 @@ logo_img = PhotoImage(file="logo.png")
 canvas.create_image(100, 100, image=logo_img)
 canvas.grid(row=0, column=1)
 
-#Labels
+# Labels
+decrypt_label = Label(text="Please decrypt your database:")
+decrypt_label.grid(row=1, column=0)
 website_label = Label(text="Website:")
-website_label.grid(row=1, column=0)
+website_label.grid(row=2, column=0)
 email_label = Label(text="Email/Username:")
-email_label.grid(row=2, column=0)
+email_label.grid(row=3, column=0)
 password_label = Label(text="Password:")
-password_label.grid(row=3, column=0)
+password_label.grid(row=4, column=0)
+encrypt_label = Label(text="Please encrypt your database:")
+encrypt_label.grid(row=6, column=0)
 
-#Entries
+# Entries
 website_entry = Entry(width=29)
-website_entry.grid(row=1, column=1, sticky='e')
+website_entry.grid(row=2, column=1, sticky='e')
 website_entry.focus()
 email_entry = Entry(width=48)
-email_entry.grid(row=2, column=1, columnspan=2, sticky='e')
+email_entry.grid(row=3, column=1, columnspan=2, sticky='e')
 email_entry.insert(0, "spoder@gmail.com")
 password_entry = Entry(width=29)
-password_entry.grid(row=3, column=1, sticky='e')
+password_entry.grid(row=4, column=1, sticky='e')
 
 # Buttons
+decrypt_button = Button(text="Decrypt", width=13, command=decrypt)
+decrypt_button.grid(row=1, column=1)
+gen_key_button = Button(text="Generate key", width=13, command=gen_key)
+gen_key_button.grid(row=1, column=2)
 search_button = Button(text="Search", width=13, command=find_password)
-search_button.grid(row=1, column=2)
-generate_password_button = Button(text="Generate Password", command=generate_password)
-generate_password_button.grid(row=3, column=2)
+search_button.grid(row=2, column=2)
+generate_password_button = Button(
+    text="Generate Password", command=generate_password)
+generate_password_button.grid(row=4, column=2)
 add_button = Button(text="Add", width=36, command=save)
-add_button.grid(row=4, column=1, columnspan=2)
+add_button.grid(row=5, column=1, columnspan=2)
+encrypt_button = Button(text="Encrypt", width=13, command=encrypt)
+encrypt_button.grid(row=6, column=1)
 
+
+window.protocol("WM_DELETE_WINDOW", on_closing)
 window.mainloop()
