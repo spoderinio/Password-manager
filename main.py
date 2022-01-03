@@ -4,6 +4,7 @@ from random import choice, randint, shuffle
 import pyperclip
 import json
 from cryptography.fernet import Fernet
+import cryptography
 
 
 def on_closing():
@@ -117,18 +118,23 @@ def encrypt():
 
 
 def decrypt():
-    # opening the key
-    with open('filekey.key', 'rb') as filekey:
-        key = filekey.read()
+    try:
+        # opening the key
+        with open('filekey.key', 'rb') as filekey:
+            key = filekey.read()
+    except FileNotFoundError:
+        messagebox.showinfo(title="Error", message="Key File Found.")
     # using the key
     fernet = Fernet(key)
 
     # opening the encrypted file
     with open('data.json', 'rb') as enc_file:
         encrypted = enc_file.read()
-
-    # decrypting the file
-    decrypted = fernet.decrypt(encrypted)
+    try:
+        # decrypting the file
+        decrypted = fernet.decrypt(encrypted)
+    except (cryptography.fernet.InvalidToken, TypeError):
+        messagebox.showinfo(title="Error", message="Wrong Key File.")
 
     # opening the file in write mode and
     # writing the decrypted data
